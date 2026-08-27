@@ -18,6 +18,8 @@
 #include "SDL_events.h"
 #include "SDL_timer.h"
 
+#include <cmath>
+
 inline static FunscriptAction getActionForPoint(const OverlayDrawingCtx& ctx, ImVec2 point) noexcept
 {
 	auto localCoord = point - ctx.canvasPos;
@@ -84,8 +86,12 @@ bool ScriptTimeline::IsBoxSelectionPasteEligible(const std::shared_ptr<Funscript
 
 	const auto& currentSelection = script->Selection();
 	if (currentSelection.empty() || currentSelection.size() != LastBoxSelectionAnchors.size()) return false;
+	// Selection times are reconstructed through the timeline coordinate mapping
+	// and can differ by a few floating-point ulps from the stored anchors. Use a
+	// frame-sized tolerance so a valid rectangle paste does not fall back to the
+	// original single-anchor paste path.
 	for (size_t i = 0; i < currentSelection.size(); ++i) {
-		if (currentSelection[i].atS != LastBoxSelectionAnchors[i].atS) return false;
+		if (std::fabs(currentSelection[i].atS - LastBoxSelectionAnchors[i].atS) > 0.001f) return false;
 	}
 	return true;
 }
